@@ -1,6 +1,12 @@
 "use client";
 
-export default function GlobalError() {
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
     <html lang="ko">
       <body style={{ margin: 0, fontFamily: '"Noto Sans KR", system-ui, sans-serif' }}>
