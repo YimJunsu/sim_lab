@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     // 오픈 시 USE_MOCK_FORTUNE=false 로 변경하면 실제 AI 호출
     let fortune;
     const DEV_MODE = true;
-    if (process.env.USE_MOCK_FORTUNE === "true" || DEV_MODE === "true") {
+    if (process.env.USE_MOCK_FORTUNE === "true" || DEV_MODE) {
       fortune = {
         overall: `${name}님의 사주를 보니 올해는 전반적으로 좋은 기운이 감돌고 있습니다. 특히 봄과 여름 사이에 좋은 기회가 찾아올 수 있으니 준비를 잘 해두세요. 주변 사람들과의 관계에서 따뜻한 에너지를 받게 될 것입니다.`,
         love: `인간관계에서 새로운 인연이 찾아올 수 있는 시기입니다. 마음을 열고 주변을 둘러보면 뜻밖의 좋은 만남이 기다리고 있을 것입니다.`,
