@@ -6,7 +6,7 @@ import Stack from "@mui/material/Stack";
 
 const contentLinks = [
     { label: "메뉴 추천", href: "/menu/select" },
-    { label: "감정 점수화", href: "/mood-check/test" },
+    { label: "감정 점수화", href: "/mymood/question" },
     { label: "이상형 테스트", href: "/ideal-type/test" },
     { label: "사주/운세", href: "/fortune/input" },
     { label: "동물상 테스트", href: "/animal-test/input" },

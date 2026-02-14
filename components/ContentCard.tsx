@@ -34,7 +34,7 @@ const contents: ContentItem[] = [
     icon: <Smile size={ICON_SIZE} color={ICON_COLOR} />,
     title: "감정 점수화",
     description: "지금 내 감정 상태를 숫자로 확인해봐요.",
-    href: "/mood-check/test",
+    href: "/mymood/question",
     tag: "셀프체크",
   },
   {

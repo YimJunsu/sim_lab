@@ -16,7 +16,13 @@ export async function POST(request: NextRequest) {
       || request.headers.get("x-real-ip")
       || "unknown";
 
-    const rateCheck = await checkRateLimit(ip);
+    // rate-limit 체크 (파일 I/O 실패 시에도 요청을 차단하지 않음)
+    let rateCheck = { allowed: true, remaining: 99 };
+    try {
+      rateCheck = await checkRateLimit(ip);
+    } catch (e) {
+      console.warn("Rate limit check failed, allowing request:", e);
+    }
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { error: "오늘의 운세 확인 횟수를 초과했습니다. 내일 다시 시도해주세요." },
@@ -92,12 +98,10 @@ export async function POST(request: NextRequest) {
     const sajuResult = calculateSaju(userInput);
     const sajuText = sajuToPromptText(userInput, sajuResult);
 
-    // ── 테스트 모드: AI 호출 없이 하드코딩된 결과 반환 ──
-    // .env.local에서 USE_MOCK_FORTUNE=true 설정 시 활성화
-    // 오픈 시 USE_MOCK_FORTUNE=false 로 변경하면 실제 AI 호출
+    // ── Mock / AI 분기 ──
+    // 정식 오픈 시: Vercel 환경변수에서 use_mock_fortune=false 로 변경
     let fortune;
-    const DEV_MODE = true;
-    if (process.env.USE_MOCK_FORTUNE === "true" || DEV_MODE) {
+    if (process.env.use_mock_fortune !== "false") {
       fortune = {
         overall: `${name}님의 사주를 보니 올해는 전반적으로 좋은 기운이 감돌고 있습니다. 특히 봄과 여름 사이에 좋은 기회가 찾아올 수 있으니 준비를 잘 해두세요. 주변 사람들과의 관계에서 따뜻한 에너지를 받게 될 것입니다.`,
         love: `인간관계에서 새로운 인연이 찾아올 수 있는 시기입니다. 마음을 열고 주변을 둘러보면 뜻밖의 좋은 만남이 기다리고 있을 것입니다.`,
@@ -112,7 +116,7 @@ export async function POST(request: NextRequest) {
       };
     } else {
       // ── 실제 AI 호출 ──
-      const apiKey = process.env.OPENAI_API_KEY;
+      const apiKey = process.env.openai_api_key;
       if (!apiKey) {
         return NextResponse.json(
           { error: "API 키값 오류. 관리자에게 문의하세요." },
@@ -133,7 +137,7 @@ JSON만 출력:
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+          model: process.env.openai_model || "gpt-3.5-turbo",
           messages: [
             { role: "system", content: systemPrompt },
             {

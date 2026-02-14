@@ -2,13 +2,12 @@ import { promises as fs } from "fs";
 import path from "path";
 
 /**
- * 파일 기반 레이트 리미터
- * - 서버리스 환경에서도 동작 (인메모리 Map 대신 파일 사용)
+ * 파일 기반 레이트 리미터 (Vercel 서버리스)
+ * - /tmp에 파일 저장 (Vercel은 /tmp만 쓰기 가능)
  * - IP별 일일 제한 + 전체 일일 제한
- * - 저장 위치: .data/rate-limit/ (gitignore 대상)
  */
 
-const RATE_DIR = path.join(process.cwd(), ".data", "rate-limit");
+const RATE_DIR = path.join("/tmp", "rate-limit");
 
 interface RateLimitEntry {
   count: number;
@@ -58,8 +57,8 @@ async function writeEntry(key: string, entry: RateLimitEntry): Promise<void> {
 export async function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number }> {
   await ensureDir();
 
-  const perIpLimit = Number(process.env.PER_IP_DAILY_LIMIT) || 5;
-  const dailyLimit = Number(process.env.DAILY_REQUEST_LIMIT) || 150;
+  const perIpLimit = Number(process.env.per_ip_daily_limit) || 5;
+  const dailyLimit = Number(process.env.daily_request_limit) || 150;
   const resetAt = getNextMidnight();
 
   // 전체 일일 제한 체크

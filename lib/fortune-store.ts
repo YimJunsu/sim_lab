@@ -3,14 +3,13 @@ import path from "path";
 import crypto from "crypto";
 
 /**
- * 운세 공유 데이터 서버 저장소
+ * 공유 데이터 서버 저장소 (Vercel 서버리스)
+ * - /tmp에 파일 저장 (Vercel은 /tmp만 쓰기 가능)
  * - 짧은 ID로 공유 데이터를 저장/조회
  * - 12시간 TTL: 만료된 데이터는 조회 시 삭제 + 주기적 정리
- * - 파일 기반 저장 (DB 없이 동작)
- * - 저장 위치: .data/shares/ (gitignore 대상)
  */
 
-const SHARES_DIR = path.join(process.cwd(), ".data", "shares");
+const SHARES_DIR = path.join("/tmp", "shares");
 const SHARE_TTL_MS = 12 * 60 * 60 * 1000; // 12시간
 
 interface StoredShare {
