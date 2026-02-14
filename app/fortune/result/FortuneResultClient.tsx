@@ -11,10 +11,7 @@ import Divider from "@mui/material/Divider";
 import Snackbar from "@mui/material/Snackbar";
 import { keyframes } from "@mui/material/styles";
 import { RotateCcw, Share2, Sparkles } from "lucide-react";
-import {
-  encodeShareData,
-  type ShareableFortuneData,
-} from "@/lib/fortune-share";
+import { type ShareableFortuneData } from "@/lib/fortune-share";
 
 /**
  * 사주/운세 결과 클라이언트 컴포넌트
@@ -91,6 +88,8 @@ interface FortuneInput {
 
 interface Props {
   sharedData: ShareableFortuneData | null;
+  /** 공유 링크였지만 만료/유효하지 않은 경우 */
+  expiredShare?: boolean;
 }
 
 // 오행 전통 색상
@@ -119,7 +118,7 @@ function Animated({ children, delay = 0 }: { children: React.ReactNode; delay?: 
   );
 }
 
-export default function FortuneResultClient({ sharedData }: Props) {
+export default function FortuneResultClient({ sharedData, expiredShare }: Props) {
   const router = useRouter();
   const [fortune, setFortune] = useState<FortuneData | null>(null);
   const [saju, setSaju] = useState<SajuData | null>(null);
@@ -135,6 +134,12 @@ export default function FortuneResultClient({ sharedData }: Props) {
       setSaju(sharedData.saju);
       setInput(sharedData.input);
       setIsSharedView(true);
+      return;
+    }
+
+    // 1-b) 만료된 공유 링크 → 입력 페이지로 리다이렉트
+    if (expiredShare) {
+      router.replace("/fortune/input");
       return;
     }
 
@@ -156,28 +161,45 @@ export default function FortuneResultClient({ sharedData }: Props) {
     } catch {
       router.replace("/fortune/input");
     }
-  }, [sharedData, router]);
+  }, [sharedData, expiredShare, router]);
 
-  // 공유 URL 생성
+  // 공유 URL 생성 (서버에 저장 → 짧은 ID 공유)
+  const [sharing, setSharing] = useState(false);
+
   const handleShare = async () => {
-    if (!fortune || !saju || !input) return;
+    if (!fortune || !saju || !input || sharing) return;
 
-    const shareData: ShareableFortuneData = { input, saju, fortune };
-    const encoded = encodeShareData(shareData);
-    const shareUrl = `${window.location.origin}/fortune/result?s=${encoded}`;
-    const shareText = `${input.name}님의 사주 운세 - "${fortune.advice}"\n\n나도 확인해보세요!`;
+    setSharing(true);
+    try {
+      const shareData: ShareableFortuneData = { input, saju, fortune };
+      const res = await fetch("/api/fortune/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(shareData),
+      });
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${input.name}님의 사주 운세 | 심랩`,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch { /* 취소 */ }
-    } else {
-      await navigator.clipboard.writeText(shareUrl);
+      if (!res.ok) throw new Error("share failed");
+      const { id } = await res.json();
+
+      const shareUrl = `${window.location.origin}/fortune/result?id=${id}`;
+      const shareText = `${input.name}님의 사주 운세 - "${fortune.advice}"\n\n나도 확인해보세요!`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `${input.name}님의 사주 운세 | 심랩`,
+            text: shareText,
+            url: shareUrl,
+          });
+        } catch { /* 취소 */ }
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setSnackOpen(true);
+      }
+    } catch {
       setSnackOpen(true);
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -651,6 +673,8 @@ export default function FortuneResultClient({ sharedData }: Props) {
               본 운세는 재미를 위한 것이며, 실제 사주 풀이와 다를 수 있습니다.
               <br />
               입력된 개인정보는 저장되지 않습니다.
+              <br />
+              공유된 결과는 최대 12시간까지 보존됩니다.
             </Typography>
           </Stack>
         </Animated>

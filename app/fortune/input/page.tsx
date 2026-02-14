@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
@@ -100,6 +100,10 @@ function Animated({ children, delay = 0 }: { children: React.ReactNode; delay?: 
 
 export default function FortuneInputPage() {
   const router = useRouter();
+
+  // 입력 필드 ref (자동 포커스용)
+  const monthRef = useRef<HTMLInputElement>(null);
+  const dayRef = useRef<HTMLInputElement>(null);
 
   // 입력 상태
   const [name, setName] = useState("");
@@ -208,7 +212,7 @@ export default function FortuneInputPage() {
         position: "relative",
         minHeight: "100vh",
         background: `linear-gradient(175deg, ${T.bgDark} 0%, #10121f 40%, #161028 70%, #0e0c18 100%)`,
-        pt: { xs: 10, sm: 13 },
+        pt: { xs: 13, sm: 13 },
         pb: { xs: 6, sm: 10 },
         overflow: "hidden",
       }}
@@ -412,20 +416,30 @@ export default function FortuneInputPage() {
                     <TextField
                       placeholder="연도"
                       value={birthYear}
-                      onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setBirthYear(val);
+                        if (val.length === 4) monthRef.current?.focus();
+                      }}
                       inputProps={{ inputMode: "numeric", maxLength: 4 }}
                       sx={{ flex: 2, ...textFieldSx }}
                     />
                     <TextField
                       placeholder="월"
                       value={birthMonth}
-                      onChange={(e) => setBirthMonth(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                      inputRef={monthRef}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 2);
+                        setBirthMonth(val);
+                        if (val.length === 2) dayRef.current?.focus();
+                      }}
                       inputProps={{ inputMode: "numeric", maxLength: 2 }}
                       sx={{ flex: 1, ...textFieldSx }}
                     />
                     <TextField
                       placeholder="일"
                       value={birthDay}
+                      inputRef={dayRef}
                       onChange={(e) => setBirthDay(e.target.value.replace(/\D/g, "").slice(0, 2))}
                       inputProps={{ inputMode: "numeric", maxLength: 2 }}
                       sx={{ flex: 1, ...textFieldSx }}

@@ -44,6 +44,11 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # =========================
+# Data (server-side share storage)
+# =========================
+/.data/
+
+# =========================
 # System files
 # =========================
 .DS_Store

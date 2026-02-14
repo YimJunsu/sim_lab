@@ -13,11 +13,12 @@ const notoSansKr = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "심랩 | 가볍게 즐기는 심리 테스트",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://simlab.kr"),
+  title: "심랩 | 심심할때 즐기는 여러가지 컨텐츠",
   description:
     "오늘의 메뉴 추천, 감정 점수화, 이상형 테스트, 운세, 동물상 테스트까지! 심랩에서 나를 알아가는 시간을 가져보세요.",
   openGraph: {
-    title: "심랩 | 가볍게 즐기는 심리 테스트",
+    title: "심랩 | 심심할때 즐기는 여러가지 컨텐츠",
     description:
       "오늘의 메뉴 추천, 감정 점수화, 이상형 테스트, 운세, 동물상 테스트까지!",
     type: "website",
