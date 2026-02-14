@@ -1,72 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculateSaju, sajuToPromptText, type UserInput } from "@/lib/saju";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
  * 사주/운세 API 라우트
  * - 사용자 입력을 받아 사주를 계산하고 OpenAI API로 해석을 생성합니다.
  * - API 키는 서버 사이드에서만 사용되어 클라이언트에 노출되지 않습니다.
- * - IP별 + 전체 일일 요청 제한으로 예산을 보호합니다.
+ * - IP별 + 전체 일일 요청 제한으로 예산을 보호합니다 (파일 기반, 서버리스 호환).
  */
-
-// ─── 요청 제한 (Rate Limiting) ───
-// Vercel 서버리스 환경에서는 인스턴스 재시작 시 초기화되므로,
-// OpenAI 대시보드의 Usage Limits 설정과 함께 사용해야 합니다.
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-let globalCount = 0;
-let globalResetAt = 0;
-
-// 자정 기준 리셋 타임스탬프 계산
-function getNextMidnight(): number {
-  const now = new Date();
-  const next = new Date(now);
-  next.setHours(24, 0, 0, 0);
-  return next.getTime();
-}
-
-// IP별 요청 제한 체크
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const perIpLimit = Number(process.env.PER_IP_DAILY_LIMIT) || 5;
-  const dailyLimit = Number(process.env.DAILY_REQUEST_LIMIT) || 150;
-
-  // 전체 일일 제한 리셋
-  if (now > globalResetAt) {
-    globalCount = 0;
-    globalResetAt = getNextMidnight();
-  }
-
-  // 전체 한도 초과
-  if (globalCount >= dailyLimit) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  // IP별 제한 체크
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    // 새 항목 또는 리셋
-    rateLimitMap.set(ip, { count: 1, resetAt: getNextMidnight() });
-    globalCount++;
-    return { allowed: true, remaining: perIpLimit - 1 };
-  }
-
-  if (entry.count >= perIpLimit) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  entry.count++;
-  globalCount++;
-  return { allowed: true, remaining: perIpLimit - entry.count };
-}
-
-// 오래된 IP 항목 정리 (메모리 누수 방지)
-function cleanupRateLimitMap() {
-  const now = Date.now();
-  if (rateLimitMap.size > 1000) {
-    for (const [key, val] of rateLimitMap) {
-      if (now > val.resetAt) rateLimitMap.delete(key);
-    }
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,9 +16,7 @@ export async function POST(request: NextRequest) {
       || request.headers.get("x-real-ip")
       || "unknown";
 
-    cleanupRateLimitMap();
-
-    const rateCheck = checkRateLimit(ip);
+    const rateCheck = await checkRateLimit(ip);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { error: "오늘의 운세 확인 횟수를 초과했습니다. 내일 다시 시도해주세요." },
@@ -117,9 +56,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (month < 1 || month > 12 || day < 1 || day > 31) {
+    if (month < 1 || month > 12) {
       return NextResponse.json(
-        { error: "유효하지 않은 날짜입니다." },
+        { error: "유효하지 않은 월입니다." },
+        { status: 400 }
+      );
+    }
+
+    // 월별 최대 일수 검증 (윤년 포함)
+    const maxDays = new Date(year, month, 0).getDate();
+    if (day < 1 || day > maxDays) {
+      return NextResponse.json(
+        { error: `${month}월은 ${maxDays}일까지입니다.` },
         { status: 400 }
       );
     }

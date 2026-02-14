@@ -13,14 +13,38 @@ interface Props {
   searchParams: Promise<{ id?: string; s?: string }>;
 }
 
+/** 공유 데이터 구조 최소 검증 */
+function isValidShareData(data: unknown): data is {
+  input: { name: string; gender: string; birthYear: number; birthMonth: number; birthDay: number };
+  saju: Record<string, unknown>;
+  fortune: { overall: string; love: string; wealth: string; health: string; advice: string };
+} {
+  if (!data || typeof data !== "object") return false;
+  const d = data as Record<string, unknown>;
+
+  // input 검증
+  const inp = d.input as Record<string, unknown> | undefined;
+  if (!inp || typeof inp.name !== "string" || !inp.name) return false;
+  if (typeof inp.gender !== "string") return false;
+  if (typeof inp.birthYear !== "number" || typeof inp.birthMonth !== "number" || typeof inp.birthDay !== "number") return false;
+
+  // saju 검증
+  if (!d.saju || typeof d.saju !== "object") return false;
+
+  // fortune 검증
+  const f = d.fortune as Record<string, unknown> | undefined;
+  if (!f || typeof f.overall !== "string" || typeof f.advice !== "string") return false;
+
+  return true;
+}
+
 /** 서버 저장소에서 공유 데이터 + 이름 추출 */
 async function resolveShareData(params: { id?: string; s?: string }) {
   // 1) 짧은 ID 방식 (신규)
   if (params.id) {
     const data = await getShareData(params.id);
-    if (data && typeof data === "object" && "input" in (data as Record<string, unknown>)) {
-      const typed = data as { input: { name: string }; saju: unknown; fortune: unknown };
-      return { name: typed.input.name, sharedData: data, expired: false };
+    if (isValidShareData(data)) {
+      return { name: data.input.name, sharedData: data, expired: false };
     }
     // id가 있었지만 데이터 없음 = 만료 또는 잘못된 링크
     return { name: null, sharedData: null, expired: true };

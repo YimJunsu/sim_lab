@@ -125,6 +125,7 @@ export default function FortuneResultClient({ sharedData, expiredShare }: Props)
   const [input, setInput] = useState<FortuneInput | null>(null);
   const [isSharedView, setIsSharedView] = useState(false);
   const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMessage, setSnackMessage] = useState("");
 
   // 데이터 로드: 공유 데이터 or sessionStorage
   useEffect(() => {
@@ -191,12 +192,14 @@ export default function FortuneResultClient({ sharedData, expiredShare }: Props)
             text: shareText,
             url: shareUrl,
           });
-        } catch { /* 취소 */ }
+        } catch { /* 사용자 취소 */ }
       } else {
         await navigator.clipboard.writeText(shareUrl);
+        setSnackMessage("공유 링크가 클립보드에 복사되었습니다");
         setSnackOpen(true);
       }
     } catch {
+      setSnackMessage("공유 링크 생성에 실패했습니다. 다시 시도해주세요.");
       setSnackOpen(true);
     } finally {
       setSharing(false);
@@ -285,7 +288,7 @@ export default function FortuneResultClient({ sharedData, expiredShare }: Props)
                 textAlign: "center",
               }}
             >
-              <Typography sx={{ color: T.goldLight, fontSize: "0.8rem" }}>
+              <Typography sx={{ color: T.goldLight, fontSize: "0.8rem", wordBreak: "keep-all", overflowWrap: "break-word" }}>
                 {input.name}님이 공유한 운세 결과입니다
               </Typography>
             </Box>
@@ -314,6 +317,9 @@ export default function FortuneResultClient({ sharedData, expiredShare }: Props)
                 fontWeight: 700,
                 textAlign: "center",
                 fontSize: { xs: "1.2rem", sm: "1.5rem" },
+                wordBreak: "keep-all",
+                overflowWrap: "break-word",
+                maxWidth: "100%",
               }}
             >
               {input.name}님의 오늘의 운세
@@ -685,7 +691,7 @@ export default function FortuneResultClient({ sharedData, expiredShare }: Props)
         open={snackOpen}
         autoHideDuration={2500}
         onClose={() => setSnackOpen(false)}
-        message="공유 링크가 클립보드에 복사되었습니다"
+        message={snackMessage}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         sx={{
           "& .MuiSnackbarContent-root": {

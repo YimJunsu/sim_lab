@@ -54,7 +54,7 @@ const contents: ContentItem[] = [
   {
     icon: <PawPrint size={ICON_SIZE} color={ICON_COLOR} />,
     title: "동물상 테스트",
-    description: "나와 닮은 동물은 무엇일까요?",
+    description: "그/그녀와 닮은 동물은 무엇일까요?",
     href: "/animal-test/input",
     tag: "테스트",
   },

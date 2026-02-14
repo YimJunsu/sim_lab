@@ -122,16 +122,23 @@ export default function FortuneInputPage() {
   // 완료 여부
   const isNameComplete = name.trim().length >= 1;
   const isGenderComplete = gender !== "";
+  const parsedYear = Number(birthYear);
+  const parsedMonth = Number(birthMonth);
+  const parsedDay = Number(birthDay);
+  const maxDaysInMonth =
+    birthYear.length === 4 && parsedMonth >= 1 && parsedMonth <= 12
+      ? new Date(parsedYear, parsedMonth, 0).getDate()
+      : 31;
   const isBirthDateComplete =
     birthYear.length === 4 &&
-    Number(birthYear) >= 1900 &&
-    Number(birthYear) <= new Date().getFullYear() &&
+    parsedYear >= 1900 &&
+    parsedYear <= new Date().getFullYear() &&
     birthMonth !== "" &&
-    Number(birthMonth) >= 1 &&
-    Number(birthMonth) <= 12 &&
+    parsedMonth >= 1 &&
+    parsedMonth <= 12 &&
     birthDay !== "" &&
-    Number(birthDay) >= 1 &&
-    Number(birthDay) <= 31;
+    parsedDay >= 1 &&
+    parsedDay <= maxDaysInMonth;
   const isBirthHourComplete = unknownTime || birthHour !== null;
 
   // 다음 단계 전환
@@ -169,6 +176,7 @@ export default function FortuneInputPage() {
       // 1) 캐시 확인 (12시간 이내 동일 입력 → 캐시 반환)
       const cached = getCachedFortune(inputData);
       if (cached) {
+        setLoading(true);
         sessionStorage.setItem("fortuneResult", JSON.stringify(cached));
         sessionStorage.setItem("fortuneInput", JSON.stringify(inputData));
         router.push("/fortune/result");
@@ -339,7 +347,7 @@ export default function FortuneInputPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && isNameComplete) advanceStep(); }}
-                  inputProps={{ maxLength: 20 }}
+                  inputProps={{ maxLength: 20, "aria-label": "이름" }}
                   sx={textFieldSx}
                 />
                 {currentStep === "name" && isNameComplete && (
@@ -368,6 +376,7 @@ export default function FortuneInputPage() {
                     exclusive
                     onChange={(_, val) => { if (val) setGender(val); }}
                     fullWidth
+                    aria-label="성별 선택"
                     sx={{
                       "& .MuiToggleButton-root": {
                         color: T.creamDim,
@@ -421,7 +430,7 @@ export default function FortuneInputPage() {
                         setBirthYear(val);
                         if (val.length === 4) monthRef.current?.focus();
                       }}
-                      inputProps={{ inputMode: "numeric", maxLength: 4 }}
+                      inputProps={{ inputMode: "numeric", maxLength: 4, "aria-label": "출생 연도" }}
                       sx={{ flex: 2, ...textFieldSx }}
                     />
                     <TextField
@@ -433,7 +442,7 @@ export default function FortuneInputPage() {
                         setBirthMonth(val);
                         if (val.length === 2) dayRef.current?.focus();
                       }}
-                      inputProps={{ inputMode: "numeric", maxLength: 2 }}
+                      inputProps={{ inputMode: "numeric", maxLength: 2, "aria-label": "출생 월" }}
                       sx={{ flex: 1, ...textFieldSx }}
                     />
                     <TextField
@@ -441,7 +450,7 @@ export default function FortuneInputPage() {
                       value={birthDay}
                       inputRef={dayRef}
                       onChange={(e) => setBirthDay(e.target.value.replace(/\D/g, "").slice(0, 2))}
-                      inputProps={{ inputMode: "numeric", maxLength: 2 }}
+                      inputProps={{ inputMode: "numeric", maxLength: 2, "aria-label": "출생 일" }}
                       sx={{ flex: 1, ...textFieldSx }}
                     />
                   </Stack>
@@ -502,6 +511,8 @@ export default function FortuneInputPage() {
 
                   {!unknownTime && (
                     <Box
+                      role="radiogroup"
+                      aria-label="태어난 시간 선택"
                       sx={{
                         display: "grid",
                         gridTemplateColumns: { xs: "repeat(3, 1fr)", sm: "repeat(4, 1fr)" },
@@ -513,6 +524,9 @@ export default function FortuneInputPage() {
                         return (
                           <Button
                             key={opt.value}
+                            role="radio"
+                            aria-checked={selected}
+                            aria-label={`${opt.label} (${opt.sub})`}
                             onClick={() => setBirthHour(opt.value)}
                             sx={{
                               display: "flex",
