@@ -176,7 +176,31 @@ export default function TermsPage() {
             </Box>
           </Section>
 
-          <Section title="제6조 (광고)">
+          <Section title="제6조 (AI 생성 이미지)">
+            <Box component="ol" sx={{ pl: 2.5, "& li": { mb: 0.75 } }}>
+              <li>
+                <Typography variant="body2" sx={{ color: "inherit" }}>
+                  서비스 내 일부 캐릭터 이미지는 Google Gemini(AI)를 활용하여
+                  생성되었습니다.
+                </Typography>
+              </li>
+              <li>
+                <Typography variant="body2" sx={{ color: "inherit" }}>
+                  AI 생성 이미지의 저작권 및 사용 권한은 해당 AI 서비스의
+                  이용약관을 따르며, 서비스 운영자는 이를 비상업적
+                  엔터테인먼트 목적으로 사용하고 있습니다.
+                </Typography>
+              </li>
+              <li>
+                <Typography variant="body2" sx={{ color: "inherit" }}>
+                  AI 생성 이미지가 사용된 위치에는 출처 표기가 포함되어
+                  있습니다.
+                </Typography>
+              </li>
+            </Box>
+          </Section>
+
+          <Section title="제7조 (광고)">
             <Typography variant="body2" sx={{ color: "inherit" }}>
               서비스는 운영비 충당을 위해 Google AdSense 등의 광고를 게재할 수
               있습니다. 광고 콘텐츠의 내용 및 광고주와의 거래에 대해서는 서비스
@@ -184,7 +208,7 @@ export default function TermsPage() {
             </Typography>
           </Section>
 
-          <Section title="제7조 (이용자의 의무)">
+          <Section title="제8조 (이용자의 의무)">
             <Typography variant="body2" sx={{ color: "inherit" }}>
               이용자는 다음 행위를 해서는 안 됩니다.
             </Typography>
@@ -213,7 +237,7 @@ export default function TermsPage() {
             </Box>
           </Section>
 
-          <Section title="제8조 (서비스 변경 및 중단)">
+          <Section title="제9조 (서비스 변경 및 중단)">
             <Typography variant="body2" sx={{ color: "inherit" }}>
               서비스 운영자는 운영상, 기술상의 필요에 따라 사전 고지 후 서비스의
               전부 또는 일부를 변경하거나 중단할 수 있습니다. 무료로 제공되는
@@ -221,7 +245,7 @@ export default function TermsPage() {
             </Typography>
           </Section>
 
-          <Section title="제9조 (약관의 변경)">
+          <Section title="제10조 (약관의 변경)">
             <Typography variant="body2" sx={{ color: "inherit" }}>
               본 약관은 관련 법령 변경 또는 서비스 운영 정책에 따라 변경될 수
               있으며, 변경 시 서비스 내 공지를 통해 안내드립니다. 변경된 약관에
@@ -229,7 +253,7 @@ export default function TermsPage() {
             </Typography>
           </Section>
 
-          <Section title="제10조 (준거법 및 분쟁 해결)">
+          <Section title="제11조 (준거법 및 분쟁 해결)">
             <Typography variant="body2" sx={{ color: "inherit" }}>
               본 약관의 해석 및 분쟁 해결에 관해서는 대한민국 법률을 적용하며,
               분쟁 발생 시 서비스 운영자의 소재지를 관할하는 법원을 제1심

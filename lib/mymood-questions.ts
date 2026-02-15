@@ -6,6 +6,8 @@
  * - 5가지 감정 카테고리: 기쁨, 피로, 스트레스, 평온, 설렘
  */
 
+import { ALL_QUESTIONS } from "@/data/mymood-questions";
+
 // ─── 감정 점수 타입 ───
 export interface EmotionScores {
   joy: number;        // 기쁨
@@ -37,65 +39,17 @@ export const EMOTION_META = {
   excitement: { label: "설렘", emoji: "💫", color: "#E891CF", colorLight: "rgba(232, 145, 207, 0.2)" },
 } as const;
 
-// ─── 점수 배분 패턴 (5가지) ───
-const SCORE_PATTERNS: EmotionScores[][] = [
-  // 패턴 1: A=기쁨, B=스트레스+피로, C=평온, D=설렘
-  [
-    { joy: 3, fatigue: 0, stress: 0, calm: 1, excitement: 1 },
-    { joy: 0, fatigue: 2, stress: 2, calm: 0, excitement: 1 },
-    { joy: 1, fatigue: 0, stress: 1, calm: 3, excitement: 0 },
-    { joy: 1, fatigue: 1, stress: 0, calm: 0, excitement: 3 },
-  ],
-  // 패턴 2: A=평온, B=스트레스, C=기쁨, D=피로
-  [
-    { joy: 0, fatigue: 1, stress: 0, calm: 3, excitement: 1 },
-    { joy: 0, fatigue: 1, stress: 3, calm: 0, excitement: 1 },
-    { joy: 3, fatigue: 0, stress: 0, calm: 1, excitement: 1 },
-    { joy: 1, fatigue: 3, stress: 0, calm: 0, excitement: 1 },
-  ],
-  // 패턴 3: A=설렘, B=평온, C=피로, D=스트레스
-  [
-    { joy: 1, fatigue: 0, stress: 0, calm: 1, excitement: 3 },
-    { joy: 2, fatigue: 0, stress: 1, calm: 2, excitement: 0 },
-    { joy: 0, fatigue: 3, stress: 1, calm: 0, excitement: 1 },
-    { joy: 0, fatigue: 0, stress: 3, calm: 1, excitement: 1 },
-  ],
-  // 패턴 4: A=피로, B=평온, C=스트레스, D=설렘
-  [
-    { joy: 0, fatigue: 3, stress: 1, calm: 0, excitement: 1 },
-    { joy: 1, fatigue: 0, stress: 0, calm: 3, excitement: 1 },
-    { joy: 0, fatigue: 1, stress: 3, calm: 0, excitement: 1 },
-    { joy: 1, fatigue: 0, stress: 0, calm: 1, excitement: 3 },
-  ],
-  // 패턴 5: A=설렘, B=스트레스, C=기쁨, D=평온
-  [
-    { joy: 1, fatigue: 0, stress: 0, calm: 0, excitement: 4 },
-    { joy: 0, fatigue: 2, stress: 2, calm: 1, excitement: 0 },
-    { joy: 3, fatigue: 0, stress: 0, calm: 1, excitement: 1 },
-    { joy: 0, fatigue: 1, stress: 0, calm: 3, excitement: 1 },
-  ],
-];
-
-// ─── 40개 질문 (placeholder: 숫자로 대체) ───
-const ALL_QUESTIONS: Question[] = Array.from({ length: 40 }, (_, i) => {
-  const qNum = i + 1;
-  const pattern = SCORE_PATTERNS[i % SCORE_PATTERNS.length];
-
-  return {
-    id: qNum,
-    text: `질문 ${qNum}`,
-    options: [
-      { label: `${qNum}-A`, scores: pattern[0] },
-      { label: `${qNum}-B`, scores: pattern[1] },
-      { label: `${qNum}-C`, scores: pattern[2] },
-      { label: `${qNum}-D`, scores: pattern[3] },
-    ],
-  };
-});
+// ─── 감정 키 순서 (인코딩/디코딩 시 사용) ───
+const EMOTION_KEYS: (keyof EmotionScores)[] = ["joy", "fatigue", "stress", "calm", "excitement"];
 
 /** 40개 중 10개 랜덤 선택 (Fisher-Yates shuffle) */
 export function getRandomQuestions(count = 10): Question[] {
-  const shuffled = [...ALL_QUESTIONS];
+  const mapped = ALL_QUESTIONS.map(q => ({
+    id: q.id,
+    text: q.content,
+    options: q.options,
+  }));
+  const shuffled = [...mapped];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -138,7 +92,6 @@ export function calculateEmotionScores(answers: EmotionScores[]): EmotionScores 
   // 합계 보정 (반올림 오차)
   const diff = 100 - (rounded.joy + rounded.fatigue + rounded.stress + rounded.calm + rounded.excitement);
   if (diff !== 0) {
-    // 가장 큰 값에 보정
     const dominant = (Object.keys(rounded) as (keyof EmotionScores)[])
       .reduce((a, b) => rounded[a] >= rounded[b] ? a : b);
     rounded[dominant] += diff;
@@ -153,35 +106,47 @@ export function getDominantEmotion(scores: EmotionScores): keyof EmotionScores {
     .reduce((a, b) => scores[a] > scores[b] ? a : b);
 }
 
-/** 결과에 따른 한 줄 코멘트 */
-export function getEmotionComment(scores: EmotionScores): string {
+// ─── 코멘트 데이터 ───
+const EMOTION_COMMENTS: Record<keyof EmotionScores, string[]> = {
+  joy: [
+    "해달라는거 다 해줄 수 있다.",
+    "헤헤헤헤헤헤헤헤헤헤헤",
+    "저는 기분이 좋아요"
+  ],
+  fatigue: [
+    "아무도 날 찾지 말아주세요",
+    "아무것도 하기 싫어요",
+    "모든 연락 무시"
+  ],
+  stress: [
+    "지구 박살내고 싶다",
+    "긴급 머리 속 폭풍주의보 발령! 뇌 터질 거 같음",
+    "건들지마세요. 물어요"
+  ],
+  calm: [
+    "명상 중… 세계 평화 달성 중",
+    "산은 산이고, 물은 물이다.",
+    "현재 완전 안정 모드"
+  ],
+  excitement: [
+    "두근거림 폭발! 몸이 말을 안들어~",
+    "설렘 MAX! 모든 게 현실을 뚫고 튀어나갈 듯",
+    "두 쫀 쿠"
+  ],
+};
+
+/** 결과에 따른 한 줄 코멘트 + 인덱스 반환 (공유 시 재현 가능) */
+export function getEmotionCommentWithIndex(scores: EmotionScores): { comment: string; commentIdx: number } {
   const dominant = getDominantEmotion(scores);
+  const options = EMOTION_COMMENTS[dominant];
+  const idx = Math.floor(Math.random() * options.length);
+  return { comment: options[idx], commentIdx: idx };
+}
 
-  const comments: Record<keyof EmotionScores, string[]> = {
-    joy: [
-      "오늘은 기쁨이 가득한 하루! 이 에너지를 주변에 나눠보세요.",
-      "행복한 감정이 넘치는 날이에요. 좋은 일이 더 생길 거예요!",
-    ],
-    fatigue: [
-      "조금 지쳐있는 것 같아요. 따뜻한 차 한잔으로 쉬어가는 건 어떨까요?",
-      "오늘은 충분한 휴식이 필요한 날이에요. 자신에게 좀 더 너그러워지세요.",
-    ],
-    stress: [
-      "스트레스가 좀 쌓여있네요. 잠시 깊은 호흡을 해보는 건 어떨까요?",
-      "긴장을 풀어줄 시간이 필요해요. 좋아하는 음악을 들어보세요.",
-    ],
-    calm: [
-      "마음이 평온한 상태예요. 이 고요함을 즐겨보세요.",
-      "안정적인 감정 상태가 돋보이네요. 명상이나 산책이 잘 어울려요.",
-    ],
-    excitement: [
-      "설레는 마음이 가득하네요! 새로운 도전을 시작하기 좋은 날이에요.",
-      "두근거리는 에너지가 느껴져요. 오늘 특별한 일이 있을지도?",
-    ],
-  };
-
-  const options = comments[dominant];
-  return options[Math.floor(Math.random() * options.length)];
+/** 코멘트 인덱스로 코멘트 텍스트 복원 */
+export function getCommentByIndex(dominant: keyof EmotionScores, idx: number): string {
+  const options = EMOTION_COMMENTS[dominant];
+  return options[idx] ?? options[0];
 }
 
 /** 관련 컨텐츠 추천 (주요 감정에 따라) */
@@ -198,7 +163,7 @@ export function getRelatedContent(scores: EmotionScores): {
       return {
         title: "이상형 성향 테스트",
         description: "기분 좋은 지금, 나의 이상형도 알아볼까요?",
-        href: "/ideal-type/test",
+        href: "/ideal-type",
       };
     case "fatigue":
     case "calm":
@@ -227,4 +192,62 @@ export interface ShareableMoodData {
   scores: EmotionScores;
   comment: string;
   date: string; // YYYY-MM-DD
+  commentIdx?: number;
+}
+
+// ─── Compact URL 인코딩/디코딩 ───
+// 형식: {joy_hex}-{fatigue_hex}-{stress_hex}-{calm_hex}-{excitement_hex}-{YYMMDD}-{commentIdx}
+// 예: 1E-0A-14-2D-05-260216-0 (~30자)
+
+/** ShareableMoodData → compact string */
+export function encodeMoodCompact(data: ShareableMoodData): string {
+  const hexScores = EMOTION_KEYS
+    .map(k => data.scores[k].toString(16).toUpperCase().padStart(2, "0"))
+    .join("-");
+
+  // YYYY-MM-DD → YYMMDD
+  const datePart = data.date.replace(/-/g, "").slice(2); // "2026-02-16" → "260216"
+
+  const commentIdx = data.commentIdx ?? 0;
+
+  return `${hexScores}-${datePart}-${commentIdx}`;
+}
+
+/** compact string → ShareableMoodData | null */
+export function decodeMoodCompact(encoded: string): ShareableMoodData | null {
+  try {
+    const parts = encoded.split("-");
+    if (parts.length !== 7) return null;
+
+    // 처음 5개: 감정 점수 (hex)
+    const scores: EmotionScores = { joy: 0, fatigue: 0, stress: 0, calm: 0, excitement: 0 };
+    for (let i = 0; i < 5; i++) {
+      const val = parseInt(parts[i], 16);
+      if (isNaN(val) || val < 0 || val > 100) return null;
+      scores[EMOTION_KEYS[i]] = val;
+    }
+
+    // 합계 검증 (100 ± 1 허용, 반올림 오차)
+    const sum = scores.joy + scores.fatigue + scores.stress + scores.calm + scores.excitement;
+    if (sum < 99 || sum > 101) return null;
+
+    // 날짜 복원: YYMMDD → YYYY-MM-DD
+    const dateStr = parts[5];
+    if (dateStr.length !== 6) return null;
+    const year = `20${dateStr.slice(0, 2)}`;
+    const month = dateStr.slice(2, 4);
+    const day = dateStr.slice(4, 6);
+    const date = `${year}-${month}-${day}`;
+
+    // 코멘트 복원
+    const commentIdx = parseInt(parts[6], 10);
+    if (isNaN(commentIdx)) return null;
+
+    const dominant = getDominantEmotion(scores);
+    const comment = getCommentByIndex(dominant, commentIdx);
+
+    return { scores, comment, date, commentIdx };
+  } catch {
+    return null;
+  }
 }
