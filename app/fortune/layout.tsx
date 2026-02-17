@@ -1,7 +1,18 @@
-/**
- * 사주/운세 섹션 레이아웃
- * - 기본 OG 메타데이터 (result/page.tsx에서 동적으로 오버라이드됨)
- */
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  openGraph: {
+    images: [
+      {
+        url: "/og/saju-result-og.png",
+        width: 1200,
+        height: 630,
+        alt: "심랩 - 사주/미니 운세",
+      },
+    ],
+  },
+};
+
 export default function FortuneLayout({
   children,
 }: {

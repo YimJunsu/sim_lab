@@ -18,6 +18,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ko_KR",
     siteName: "심랩",
+    images: [
+      {
+        url: "/og/simlab-default-og.png",
+        width: 1200,
+        height: 630,
+        alt: "심랩 - 감정 점수화 결과",
+      },
+    ],
   },
 };
 
