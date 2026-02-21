@@ -31,38 +31,83 @@
 
 ---
 
-## 1️⃣ Menu Recommendation Based on Today’s Mood
+# 1🍽 Mood-Based Menu Recommendation Service
 
-### 📌 Service Description
-Users select their “today’s mood,” and a random menu matching that emotion is recommended.
+## 1. Service Overview
+A web service that recommends food based on:
+- User’s current mood/condition
+- Or direct cuisine selection
 
-### 📌 Flow
-1. Mood selection (button-style UI)
-    - Depressed
-    - Energetic
-    - Tired
-    - Excited
-    - Stressed
-2. Click “Get Recommendation”
-3. Display random menu + one-line comment
+Each result includes:
+- Recommended menu item
+- Nutritional information
+- Top 3 nearby restaurants (sorted by distance)
 
-### 📌 Example Results
-- Depressed → Sweet chocolate cake 🍫
-- Energetic → Spicy stir-fried pork 🔥
-- Tired → Warm gukbap 🍲
+---
 
-### 📌 Expansion Points
-- Provide average nutritional information
-- Include disclaimer: “Nutritional information may differ from actual values.”
-- Generate SNS shareable image
-- Use GeoLocation + Kakao Map API
-    - Search nearby restaurants based on current location (sorted by distance)
-    - Location is not stored and is only used during API calls
-    - Must include this notice
+## 2. User Flow
 
-### 📌 Page Structure
-- Mood input page
-- Result page
+### Step 1: Input Section
+Simple introduction + two options:
+
+**A. Recommend by Current Mood**
+Examples:
+- Feeling great
+- Angry
+- Depressed
+- Hungover
+- Rainy day
+- Craving soju
+- Need comfort food
+- (Humorous options allowed)
+
+**B. Direct Menu Recommendation**
+Cuisine categories:
+- Korean
+- Western
+- Chinese
+- Japanese
+- Dessert
+- Fully Random (All)
+
+---
+
+### Step 2: Result Section
+
+1. A menu item is selected.
+2. Nutritional information is displayed.
+3. The selected food name is searched automatically via Kakao Map API.
+4. Using Geolocation, restaurants are sorted by distance.
+5. The nearest 3 restaurants are rendered.
+
+Example:
+If result = Kimchi Jjigae → Search “김치찌개” → Show 3 closest restaurants + nutrition info.
+
+---
+
+## 3. Data & APIs
+- Nutritional Data: Public Data Portal
+- Map Search: Kakao Map API
+- Location: Browser Geolocation API
+
+---
+
+## 4. Sharing Method
+Share via URL parameters including:
+- Selected menu
+- 3 restaurant results
+- Location-based rendering reference
+
+Example:
+?menu=kimchi-jjigae
+
+---
+
+## 5. Legal Notice (Required Display)
+- Nutritional data is provided by the Public Data Portal and may not be fully accurate.
+- Distance and restaurant location data may not be fully accurate.
+- User location is collected via Geolocation and is not stored on the server.
+- Location-based searches are conducted using Kakao Map API.
 
 ---
 
@@ -184,7 +229,46 @@ An interactive test where users think about someone they like while answering qu
 
 ---
 
-## 6️⃣ Additional Pages
+## 6️⃣ 마법의 책
+
+### 📌 Service Description
+"스폰지밥의 마법의 소라고동"에서 영감을 받은 단일 페이지 오라클 서비스.
+사용자가 속으로 질문을 생각한 뒤 책에 물으면, 마법의 책이 O / X / Fortune 중 하나의 답을 내어준다.
+
+### 📌 결과 확률
+- O (긍정) : 30%
+- X (부정) : 60%
+- Fortune (행운) : 10%
+
+### 📌 시간 기반 시드 방식 (localStorage 미사용)
+- `Math.floor(Date.now() / 180_000)` 을 시드로 Mulberry32 PRNG 사용
+- 3분 단위로 시드가 바뀌므로, 동일 시간대 내 항상 같은 결과 반환
+- 데이터가 쌓이지 않으며, 서버 요청도 불필요
+
+### 📌 Flow
+1. **스플래시/스토리 인트로** — 유적지에서 발견된 마법의 책 컨셉으로 스토리 연출
+2. **가이드 안내** — "속마음으로 질문을 생각하세요. (소리 내시면 더 잘 나와요! 제 경험입니다. 😉)"
+3. **"책에 묻기" 버튼** 클릭 → "마법의 책님께서 확인중입니다..." 로딩 (5초)
+4. **결과 공개** — 답변 유형에 맞는 이미지와 메시지 표시
+
+### 📌 이미지 리소스
+- `public/magic-book/magic-book-cover.png` — 인트로/로딩 표지
+- `public/magic-book/magic-book-yes.png` — O(긍정) 결과
+- `public/magic-book/magic-book-no.png` — X(부정) 결과
+- `public/magic-book/magic-book-lucky.png` — Fortune(행운) 결과
+
+### 📌 Design Concept
+- **완전 독립된 이벤트형 디자인** — 나머지 콘텐츠와 전혀 다른 분위기
+- 고대 유물·고대 마법서 감성: 깊은 보라-블랙 배경, 골드 타이포, 먼지 파티클
+- 모바일 우선 단일 페이지 구성
+- 스크린샷·공유 기능 없음
+
+### 📌 Page Structure
+- 단일 페이지 `/magic-book` (스테이지: intro → loading → result)
+
+---
+
+## 7️⃣ Additional Pages
 
 - Main page
 - Privacy Policy

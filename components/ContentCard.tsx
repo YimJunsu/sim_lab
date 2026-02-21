@@ -9,7 +9,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { ArrowRight } from "lucide-react";
-import { UtensilsCrossed, Smile, Heart, Sparkles, PawPrint } from "lucide-react";
+import { UtensilsCrossed, Smile, Heart, Sparkles, PawPrint, BookOpen } from "lucide-react";
 
 interface ContentItem {
   icon: ReactNode;
@@ -57,6 +57,13 @@ const contents: ContentItem[] = [
     description: "그/그녀와 닮은 동물은 무엇일까요?",
     href: "/animal-test/input",
     tag: "테스트",
+  },
+  {
+    icon: <BookOpen size={ICON_SIZE} color={ICON_COLOR} />,
+    title: "마법의 책",
+    description: "고대 마법의 책이 당신의 질문에 답해드립니다.",
+    href: "/magic-book",
+    tag: "이벤트",
   },
 ];
 
