@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import Script from "next/script";
 import ThemeProvider from "@/components/ThemeProvider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -77,6 +78,9 @@ export const metadata: Metadata = {
   verification: {
     google: "ShjJ5SL16VVAty2nkHinvAAQAwX5gDXHP395YuRYNn0",
   },
+  other: {
+    "google-adsense-account": "ca-pub-9691519911667390",
+  },
 };
 
 export default function RootLayout({
@@ -92,6 +96,12 @@ export default function RootLayout({
           {children}
           <Footer />
         </ThemeProvider>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9691519911667390"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
