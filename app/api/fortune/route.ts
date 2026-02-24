@@ -137,7 +137,7 @@ JSON만 출력:
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: process.env.openai_model || "gpt-3.5-turbo",
+          model: process.env.openai_model || "gpt-4o-mini",
           messages: [
             { role: "system", content: systemPrompt },
             {
@@ -188,6 +188,9 @@ JSON만 출력:
         );
       }
     }
+
+    // 성공 로그
+    console.log(`[Fortune API] 성공 - 이름: ${name}, IP: ${ip}, 모드: ${process.env.use_mock_fortune !== "false" ? "mock" : "AI"}, 남은횟수: ${rateCheck.remaining}`);
 
     // 사주 정보 + 남은 횟수 함께 반환
     return NextResponse.json({

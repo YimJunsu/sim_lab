@@ -20,6 +20,7 @@ import {
     encodeMoodCompact,
     decodeMoodCompact,
 } from "@/lib/mymood-questions";
+import { copyToClipboard } from "@/lib/clipboard";
 
 // ─── 인사이드아웃 감성 컬러 (더 생생한 톤) ───
 const IO_COLORS: Record<keyof EmotionScores, { main: string; light: string; glow: string }> = {
@@ -244,8 +245,8 @@ export default function MymoodResultClient() {
         if (navigator.share) {
             try { await navigator.share({ title: "감정 점수 | 심랩", url: shareUrl }); } catch { /* ignore */ }
         } else {
-            await navigator.clipboard.writeText(shareUrl);
-            setSnack({ open: true, msg: "링크가 복사되었습니다!" });
+            const ok = await copyToClipboard(shareUrl);
+            setSnack({ open: true, msg: ok ? "링크가 복사되었습니다!" : "링크 복사에 실패했습니다." });
         }
     }, [result]);
 
@@ -697,6 +698,7 @@ export default function MymoodResultClient() {
                 autoHideDuration={2000}
                 onClose={() => setSnack(prev => ({ ...prev, open: false }))}
                 message={snack.msg}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
             />
         </Box>
     );

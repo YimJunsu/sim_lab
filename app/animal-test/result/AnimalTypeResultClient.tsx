@@ -18,6 +18,7 @@ import {
   encodeAnimalCompact,
   decodeAnimalCompact,
 } from "@/lib/animal-type-questions";
+import { copyToClipboard } from "@/lib/clipboard";
 
 /**
  * 동물상 테스트 결과
@@ -233,8 +234,8 @@ export default function AnimalTypeResultClient() {
     if (navigator.share) {
       try { await navigator.share({ title: "동물상 테스트 | 심랩", url: shareUrl }); } catch { /* */ }
     } else {
-      await navigator.clipboard.writeText(shareUrl);
-      setSnack({ open: true, msg: "링크가 복사되었습니다!" });
+      const ok = await copyToClipboard(shareUrl);
+      setSnack({ open: true, msg: ok ? "링크가 복사되었습니다!" : "링크 복사에 실패했습니다." });
     }
   }, [result]);
 
@@ -625,6 +626,7 @@ export default function AnimalTypeResultClient() {
         autoHideDuration={2000}
         onClose={() => setSnack(prev => ({ ...prev, open: false }))}
         message={snack.msg}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
     </Box>
   );

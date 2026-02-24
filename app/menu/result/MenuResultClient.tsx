@@ -11,6 +11,7 @@ import Snackbar from "@mui/material/Snackbar";
 import { keyframes } from "@mui/material/styles";
 import { RotateCcw, Share2, MapPin, Star, Clock } from "lucide-react";
 import { findMenuById } from "@/data/menu-items";
+import { copyToClipboard } from "@/lib/clipboard";
 
 /**
  * 오늘의 메뉴 추천 결과 페이지
@@ -138,15 +139,13 @@ export default function MenuResultClient() {
   const handleShare = async () => {
     const url = `${window.location.origin}/menu/result?menu=${menu.id}`;
     const text = `오늘의 추천 메뉴: ${menu.name} ${menu.emoji}\n\n${menu.description}\n\n심랩에서 확인해보세요!`;
-    try {
-      if (navigator.share) {
+    if (navigator.share) {
+      try {
         await navigator.share({ title: `오늘의 메뉴: ${menu.name}`, text, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShowSnack(true);
-      }
-    } catch {
-      // 공유 취소 시 무시
+      } catch { /* 취소 무시 */ }
+    } else {
+      const ok = await copyToClipboard(url);
+      if (ok) setShowSnack(true);
     }
   };
 

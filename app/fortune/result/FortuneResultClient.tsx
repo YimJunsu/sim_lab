@@ -7,17 +7,20 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import Divider from "@mui/material/Divider";
 import Snackbar from "@mui/material/Snackbar";
-import Dialog from "@mui/material/Dialog";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
+import CircularProgress from "@mui/material/CircularProgress";
 import { keyframes } from "@mui/material/styles";
 import { RotateCcw, Camera, Share2 } from "lucide-react";
-import html2canvas from "html2canvas";
+import { toBlob } from "html-to-image";
+import { copyToClipboard } from "@/lib/clipboard";
 
 /**
  * 사주/운세 결과 클라이언트 컴포넌트
+ *
+ * [캡처 동작]
+ * - 모바일: Web Share API(files) → 네이티브 공유 시트 → 사진 앱에 저장 가능
+ * - 데스크탑: Clipboard API → 클립보드에 이미지 복사 (PrtSc 효과, Ctrl+V로 붙여넣기)
+ * - Fallback: PNG 파일 다운로드
  */
 
 // ─── 디자인 토큰 ───
@@ -90,14 +93,6 @@ interface PageData {
     input: FortuneInput;
 }
 
-const ELEMENT_COLORS: Record<string, { bar: string; label: string }> = {
-    "목(木)": { bar: "#3a7d44", label: "木" },
-    "화(火)": { bar: "#c0392b", label: "火" },
-    "토(土)": { bar: "#b8860b", label: "土" },
-    "금(金)": { bar: "#bdc3c7", label: "金" },
-    "수(水)": { bar: "#2471a3", label: "수" },
-};
-
 const FORTUNE_CATEGORIES = [
     { key: "overall", title: "종합운", hanja: "綜合", accent: "#c9a96e" },
     { key: "love", title: "연애운", hanja: "戀愛", accent: "#d4726a" },
@@ -117,13 +112,11 @@ export default function FortuneResultClient() {
     const router = useRouter();
     const captureRef = useRef<HTMLDivElement>(null);
     const [data, setData] = useState<PageData | null>(null);
-
-    // 알림 및 컨펌 상태
+    const [isCapturing, setIsCapturing] = useState(false);
     const [snackOpen, setSnackOpen] = useState(false);
     const [snackMessage, setSnackMessage] = useState("");
-    const [confirmOpen, setConfirmOpen] = useState(false);
 
-    // ─── 데이터 로드 (ESLint 에러 해결 방식) ───
+    // ─── 데이터 로드 ───
     useEffect(() => {
         const resultRaw = sessionStorage.getItem("fortuneResult");
         const inputRaw = sessionStorage.getItem("fortuneInput");
@@ -140,70 +133,130 @@ export default function FortuneResultClient() {
                 saju: result.saju,
                 input: JSON.parse(inputRaw),
             };
-
-            // setTimeout을 사용하여 렌더링 사이클이 완료된 후 상태를 업데이트합니다.
-            // 이는 'cascading renders' 에러를 방지하는 권장 비동기 방식입니다.
-            const timeoutId = setTimeout(() => {
-                setData(parsed);
-            }, 0);
-
+            const timeoutId = setTimeout(() => setData(parsed), 0);
             return () => clearTimeout(timeoutId);
         } catch {
             router.replace("/fortune/input");
         }
     }, [router]);
 
-    // ─── 캡쳐 및 저장 ───
-    const performCapture = async () => {
-        if (!captureRef.current) return;
-        setConfirmOpen(false); // 다이얼로그를 즉시 닫아 캡쳐본에 포함되지 않게 함
+    // ─── 애니메이션 일시 정지 헬퍼 ───
+    const pauseAnimations = (el: HTMLElement) => {
+        const saved: { el: HTMLElement; animation: string; opacity: string }[] = [];
+        el.querySelectorAll<HTMLElement>("*").forEach((child) => {
+            const cs = getComputedStyle(child);
+            if (cs.animationName && cs.animationName !== "none") {
+                saved.push({ el: child, animation: child.style.animation, opacity: child.style.opacity });
+                child.style.animation = "none";
+                child.style.opacity = "1";
+            }
+        });
+        return saved;
+    };
 
-        // 다이얼로그가 닫히는 애니메이션 시간을 고려한 짧은 지연
-        await new Promise((resolve) => setTimeout(resolve, 150));
+    const resumeAnimations = (saved: { el: HTMLElement; animation: string; opacity: string }[]) => {
+        saved.forEach((s) => {
+            s.el.style.animation = s.animation;
+            s.el.style.opacity = s.opacity;
+        });
+    };
 
+    // ─── 캡처 핸들러 ───
+    // 동작 우선순위:
+    //   1. 모바일 (Web Share API + files 지원) → 네이티브 공유 시트
+    //   2. 데스크탑 (Clipboard API) → 클립보드 복사 (PrtSc 효과)
+    //   3. Fallback → PNG 다운로드
+    const handleCapture = async () => {
+        if (!captureRef.current || isCapturing || !data) return;
+        setIsCapturing(true);
+
+        const el = captureRef.current;
+        const savedStyles = pauseAnimations(el);
+
+        let blob: Blob | null = null;
         try {
-            const el = captureRef.current;
-            const savedStyles: { el: HTMLElement; animation: string; opacity: string }[] = [];
-
-            // html2canvas는 애니메이션 중인 요소를 제대로 잡지 못하므로 일시 정지
-            el.querySelectorAll("*").forEach((child) => {
-                const h = child as HTMLElement;
-                const cs = getComputedStyle(h);
-                if (cs.animationName && cs.animationName !== "none") {
-                    savedStyles.push({ el: h, animation: h.style.animation, opacity: h.style.opacity });
-                    h.style.animation = "none";
-                    h.style.opacity = "1";
-                }
-            });
-
-            const canvas = await html2canvas(el, {
+            blob = await toBlob(el, {
                 backgroundColor: T.bgDark,
-                scale: 2,
-                useCORS: true,
-                logging: false,
+                pixelRatio: 2,
+                cacheBust: true,
             });
-
-            // 원래 스타일 복원
-            savedStyles.forEach((s) => {
-                s.el.style.animation = s.animation;
-                s.el.style.opacity = s.opacity;
-            });
-
-            const link = document.createElement("a");
-            link.download = `사주운세_${data?.input?.name || "결과"}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-
-            setSnackMessage("오늘의 운세 카드가 저장되었습니다.");
-            setSnackOpen(true);
-        } catch (err) {
+        } catch {
+            resumeAnimations(savedStyles);
             setSnackMessage("이미지 생성 중 오류가 발생했습니다.");
             setSnackOpen(true);
+            setIsCapturing(false);
+            return;
+        }
+
+        resumeAnimations(savedStyles);
+
+        if (!blob) {
+            setSnackMessage("이미지 생성 중 오류가 발생했습니다.");
+            setSnackOpen(true);
+            setIsCapturing(false);
+            return;
+        }
+
+        const filename = `사주운세_${data.input.name}.png`;
+        const file = new File([blob], filename, { type: "image/png" });
+
+        try {
+            // 1) 모바일: Web Share API (files 지원 여부 확인)
+            if (
+                typeof navigator.share === "function" &&
+                typeof navigator.canShare === "function" &&
+                navigator.canShare({ files: [file] })
+            ) {
+                await navigator.share({
+                    files: [file],
+                    title: `${data.input.name}님의 오늘의 운세`,
+                    text: "심랩에서 확인한 오늘의 운세 카드",
+                });
+                return;
+            }
+
+            // 2) 데스크탑: Clipboard API → 클립보드에 이미지 복사 (PrtSc 효과)
+            const ClipboardItemClass = window.ClipboardItem as typeof ClipboardItem | undefined;
+            if (
+                typeof navigator.clipboard?.write === "function" &&
+                typeof ClipboardItemClass !== "undefined"
+            ) {
+                try {
+                    await navigator.clipboard.write([
+                        new ClipboardItemClass({ "image/png": blob }),
+                    ]);
+                    setSnackMessage("클립보드에 복사됐어요! Ctrl+V로 붙여넣기 하세요 📋");
+                    setSnackOpen(true);
+                    return;
+                } catch {
+                    // 권한 거부 시 fallback으로 계속
+                }
+            }
+
+            // 3) Fallback: 파일 다운로드
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.download = filename;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+            setSnackMessage("운세 카드가 저장됐어요!");
+            setSnackOpen(true);
+        } catch (err) {
+            // 공유 취소(AbortError)는 오류 메시지 없이 처리
+            const isDismissed =
+                err instanceof Error &&
+                (err.name === "AbortError" || err.message.toLowerCase().includes("cancel"));
+            if (!isDismissed) {
+                setSnackMessage("이미지 생성 중 오류가 발생했습니다.");
+                setSnackOpen(true);
+            }
+        } finally {
+            setIsCapturing(false);
         }
     };
 
-    const handleScreenshotRequest = () => setConfirmOpen(true);
-
+    // ─── 링크 공유 ───
     const handleShareLink = async () => {
         const shareUrl = `${window.location.origin}/fortune/input`;
         if (navigator.share) {
@@ -215,12 +268,13 @@ export default function FortuneResultClient() {
                 });
             } catch { /* 취소 처리 */ }
         } else {
-            await navigator.clipboard.writeText(shareUrl);
-            setSnackMessage("공유 링크가 클립보드에 복사되었습니다.");
+            const ok = await copyToClipboard(shareUrl);
+            setSnackMessage(ok ? "공유 링크가 클립보드에 복사되었습니다." : "링크 복사에 실패했습니다.");
             setSnackOpen(true);
         }
     };
 
+    // ─── 다시하기 ───
     const handleRetry = () => {
         sessionStorage.removeItem("fortuneResult");
         sessionStorage.removeItem("fortuneInput");
@@ -322,61 +376,65 @@ export default function FortuneResultClient() {
                 <Animated delay={0.8}>
                     <Stack spacing={1.5} sx={{ mt: 5 }}>
                         <Stack direction="row" spacing={1.5}>
-                            <Button fullWidth variant="outlined" onClick={handleRetry} startIcon={<RotateCcw size={18} />} sx={{ py: 1.5, color: T.gold, borderColor: T.border, borderRadius: 3, fontWeight: 700 }}>
+                            <Button
+                                fullWidth
+                                variant="outlined"
+                                onClick={handleRetry}
+                                startIcon={<RotateCcw size={18} />}
+                                sx={{ py: 1.5, color: T.gold, borderColor: T.border, borderRadius: 3, fontWeight: 700 }}
+                            >
                                 다시하기
                             </Button>
-                            <Button fullWidth variant="contained" onClick={handleScreenshotRequest} startIcon={<Camera size={18} />} sx={{ py: 1.5, bgcolor: T.crimson, color: T.cream, borderRadius: 3, fontWeight: 700, "&:hover": { bgcolor: "#802020" } }}>
-                                결과 저장
+                            <Button
+                                fullWidth
+                                variant="contained"
+                                onClick={handleCapture}
+                                disabled={isCapturing}
+                                startIcon={
+                                    isCapturing
+                                        ? <CircularProgress size={16} sx={{ color: T.cream }} />
+                                        : <Camera size={18} />
+                                }
+                                sx={{
+                                    py: 1.5,
+                                    bgcolor: T.crimson,
+                                    color: T.cream,
+                                    borderRadius: 3,
+                                    fontWeight: 700,
+                                    "&:hover": { bgcolor: "#802020" },
+                                    "&.Mui-disabled": { bgcolor: "rgba(160,48,48,0.4)", color: "rgba(240,230,211,0.5)" },
+                                }}
+                            >
+                                {isCapturing ? "캡처 중..." : "결과 캡처"}
                             </Button>
                         </Stack>
-                        <Button fullWidth variant="outlined" onClick={handleShareLink} startIcon={<Share2 size={18} />} sx={{ py: 1.5, color: T.gold, borderColor: T.border, borderRadius: 3, fontWeight: 700 }}>
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            onClick={handleShareLink}
+                            startIcon={<Share2 size={18} />}
+                            sx={{ py: 1.5, color: T.gold, borderColor: T.border, borderRadius: 3, fontWeight: 700 }}
+                        >
                             친구에게 추천하기
                         </Button>
                     </Stack>
                 </Animated>
             </Container>
 
-            {/* ─── 커스텀 컨펌 다이얼로그 ─── */}
-            <Dialog
-                open={confirmOpen}
-                onClose={() => setConfirmOpen(false)}
-                PaperProps={{
-                    sx: {
-                        bgcolor: "#0c0e1a",
-                        backgroundImage: "none",
-                        border: `1px solid ${T.goldDim}`,
-                        borderRadius: 5,
-                        minWidth: 310,
-                        overflow: "hidden"
-                    }
-                }}
-            >
-                <DialogContent sx={{ textAlign: "center", pt: 5, pb: 3 }}>
-                    <Typography sx={{ fontFamily: "serif", color: T.gold, fontSize: "1.6rem", mb: 2, opacity: 0.8 }}>
-                        告
-                    </Typography>
-                    <Typography sx={{ color: T.cream, fontSize: "1rem", lineHeight: 1.7, fontWeight: 500, wordBreak: "keep-all" }}>
-                        오늘의 길한 기운을 담은 운세 카드를<br />
-                        이미지로 저장하여 간직하시겠습니까?
-                    </Typography>
-                </DialogContent>
-                <DialogActions sx={{ justifyContent: "center", gap: 2, pb: 4, px: 4 }}>
-                    <Button onClick={() => setConfirmOpen(false)} sx={{ color: T.goldDim, fontWeight: 600, flex: 1 }}>
-                        취소
-                    </Button>
-                    <Button onClick={performCapture} variant="contained" sx={{ bgcolor: T.crimson, color: T.cream, fontWeight: 700, flex: 1, "&:hover": { bgcolor: "#802020" } }}>
-                        저장하기
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
             <Snackbar
                 open={snackOpen}
-                autoHideDuration={3000}
+                autoHideDuration={3500}
                 onClose={() => setSnackOpen(false)}
                 message={snackMessage}
                 anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-                sx={{ "& .MuiSnackbarContent-root": { bgcolor: T.bgCard, color: T.cream, border: `1px solid ${T.border}`, borderRadius: 3 } }}
+                sx={{
+                    "& .MuiSnackbarContent-root": {
+                        bgcolor: T.bgCard,
+                        color: T.cream,
+                        border: `1px solid ${T.border}`,
+                        borderRadius: 3,
+                    },
+                }}
             />
         </Box>
     );
