@@ -19,6 +19,7 @@ import {
   decodeAnimalCompact,
 } from "@/lib/animal-type-questions";
 import { copyToClipboard } from "@/lib/clipboard";
+import AdBanner from "@/components/AdBanner";
 
 /**
  * 동물상 테스트 결과
@@ -552,6 +553,9 @@ export default function AnimalTypeResultClient() {
         </Animated>
 
         {/* ─── 버튼 ─── */}
+        {/* ─── 광고 ─── */}
+        <AdBanner adSlot="8690220526" />
+
         <Animated delay={0.6}>
           <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
             {isShared ? (

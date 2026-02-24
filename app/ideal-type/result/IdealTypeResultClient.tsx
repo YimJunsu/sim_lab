@@ -20,6 +20,7 @@ import {
   decodeIdealTypeCompact,
 } from "@/lib/ideal-type-questions";
 import { copyToClipboard } from "@/lib/clipboard";
+import AdBanner from "@/components/AdBanner";
 
 /**
  * 이상형 성향 테스트 결과
@@ -405,6 +406,9 @@ export default function IdealTypeResultClient() {
             </Stack>
           </Box>
         </Animated>
+
+        {/* ─── 광고 ─── */}
+        <AdBanner adSlot="8690220526" />
 
         {/* ─── 버튼 ─── */}
         <Animated delay={0.5}>

@@ -21,6 +21,7 @@ import {
     decodeMoodCompact,
 } from "@/lib/mymood-questions";
 import { copyToClipboard } from "@/lib/clipboard";
+import AdBanner from "@/components/AdBanner";
 
 // ─── 인사이드아웃 감성 컬러 (더 생생한 톤) ───
 const IO_COLORS: Record<keyof EmotionScores, { main: string; light: string; glow: string }> = {
@@ -620,6 +621,9 @@ export default function MymoodResultClient() {
                         </Box>
                     </Animated>
                 )}
+
+                {/* ─── 광고 ─── */}
+                <AdBanner adSlot="8690220526" />
 
                 {/* ─── 액션 버튼 ─── */}
                 <Animated delay={0.55}>

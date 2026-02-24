@@ -12,6 +12,7 @@ import { keyframes } from "@mui/material/styles";
 import { RotateCcw, Share2, MapPin, Star, Clock } from "lucide-react";
 import { findMenuById } from "@/data/menu-items";
 import { copyToClipboard } from "@/lib/clipboard";
+import AdBanner from "@/components/AdBanner";
 
 /**
  * 오늘의 메뉴 추천 결과 페이지
@@ -625,6 +626,9 @@ export default function MenuResultClient() {
             * 위치 정보는 Kakao Map API를 통해 검색되며 서버에 저장되지 않습니다.
           </Typography>
         </Box>
+
+        {/* ── 광고 ── */}
+        <AdBanner adSlot="8690220526" />
 
         {/* ── 버튼 그룹 ── */}
         <Stack

@@ -13,6 +13,7 @@ import { keyframes } from "@mui/material/styles";
 import { RotateCcw, Camera, Share2 } from "lucide-react";
 import { toBlob } from "html-to-image";
 import { copyToClipboard } from "@/lib/clipboard";
+import AdBanner from "@/components/AdBanner";
 
 /**
  * 사주/운세 결과 클라이언트 컴포넌트
@@ -371,6 +372,8 @@ export default function FortuneResultClient() {
                         </Box>
                     </Animated>
                 </Box>
+                {/* ─── 광고 ─── */}
+                <AdBanner adSlot="8690220526" />
 
                 {/* ─── 하단 액션 버튼 ─── */}
                 <Animated delay={0.8}>
