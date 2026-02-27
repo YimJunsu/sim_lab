@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
     // ── Mock / AI 분기 ──
     // 정식 오픈 시: Vercel 환경변수에서 use_mock_fortune=false 로 변경
     let fortune;
+    let sajuReading;
     if (process.env.use_mock_fortune !== "false") {
       fortune = {
         overall: `${name}님의 사주를 보니 올해는 전반적으로 좋은 기운이 감돌고 있습니다. 특히 봄과 여름 사이에 좋은 기회가 찾아올 수 있으니 준비를 잘 해두세요. 주변 사람들과의 관계에서 따뜻한 에너지를 받게 될 것입니다.`,
@@ -114,6 +115,14 @@ export async function POST(request: NextRequest) {
           direction: "동쪽",
         },
       };
+      sajuReading = {
+        personality: `${name}님은 타고난 직관력과 섬세한 감수성을 지니고 계십니다. 주변 상황을 빠르게 파악하는 통찰력이 뛰어나며, 한번 마음을 먹으면 끝까지 해내는 추진력도 겸비하셨습니다. 표현하지 않아도 속 깊은 배려심으로 주변에서 믿음직스러운 존재로 여겨지는 분입니다.`,
+        strengths: `책임감이 강하고 맡은 일에 최선을 다하는 성실함이 가장 큰 자산입니다. 대인관계에서 진심 어린 소통으로 깊고 오래가는 인연을 쌓아가는 능력이 탁월합니다.`,
+        weaknesses: `지나친 완벽주의와 신중함으로 인해 결정적인 순간에 망설임이 생길 수 있습니다. 자신의 감정을 내면에 쌓아두는 경향이 있으니, 신뢰할 수 있는 사람에게 속 이야기를 나누는 것이 좋습니다.`,
+        lifeTheme: `이생의 큰 흐름은 '내면의 성장을 통한 풍요로운 삶'입니다. 젊은 시절의 노력과 경험이 중년 이후 안정과 성취로 이어지는 사주 구조를 지니고 계십니다. 주변 사람들과 함께 나누고 이끌어가는 과정에서 삶의 가장 큰 보람을 찾게 될 것입니다.`,
+        elementAdvice: `사주의 오행 균형을 보면 부족한 기운을 일상에서 보충하면 더욱 원만한 삶의 흐름을 만들 수 있습니다. 자연을 가까이하고 규칙적인 생활 습관으로 몸과 마음의 기운을 정돈해보세요.`,
+        luckyDirection: `동쪽과 남쪽 방향이 길하며, 새로운 시작이나 중요한 만남이 있을 때 이 방향에서 이루어지도록 하면 좋습니다.`,
+      };
     } else {
       // ── 실제 AI 호출 ──
       const apiKey = process.env.openai_api_key;
@@ -124,11 +133,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const systemPrompt = `한국 전통 사주 전문가. 사주팔자 기반 운세 해석을 JSON으로 제공.
-규칙: 한국어, 따뜻한 어조, 부정적 내용 지양, 오행/음양 반영.
-카테고리: 종합운(3문장), 연애운(2문장), 재물운(2문장), 건강운(2문장), 조언(1문장), 행운요소.
-JSON만 출력:
-{"overall":"","love":"","wealth":"","health":"","advice":"","lucky":{"color":"","number":"","direction":""}}`;
+      const systemPrompt = `한국 전통 사주 전문가. 사주팔자 기반 오늘의 운세와 사주 해석을 JSON으로 제공.
+규칙: 한국어, 따뜻하고 통찰력 있는 어조, 부정적 내용 지양, 오행/음양 반영.
+아래 JSON 형식만 출력 (다른 텍스트 없음):
+{"fortune":{"overall":"종합운3문장","love":"연애운2문장","wealth":"재물운2문장","health":"건강운2문장","advice":"오늘의조언1문장","lucky":{"color":"색상","number":"숫자","direction":"방향"}},"sajuReading":{"personality":"타고난성격2-3문장","strengths":"강점2문장","weaknesses":"약점보완2문장","lifeTheme":"인생주제2-3문장","elementAdvice":"오행조언2문장","luckyDirection":"길한방향1-2문장"}}`;
 
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -142,11 +150,11 @@ JSON만 출력:
             { role: "system", content: systemPrompt },
             {
               role: "user",
-              content: `사주 해석:\n${sajuText}`,
+              content: `사주 정보:\n${sajuText}`,
             },
           ],
           temperature: 0.8,
-          max_tokens: 600,
+          max_tokens: 1500,
         }),
       });
 
@@ -179,7 +187,10 @@ JSON만 출력:
 
       try {
         const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-        fortune = JSON.parse(jsonMatch ? jsonMatch[0] : aiContent);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiContent);
+        // AI가 { fortune, sajuReading } 구조로 반환 (이전 버전 fallback 지원)
+        fortune = parsed.fortune ?? parsed;
+        sajuReading = parsed.sajuReading;
       } catch {
         console.error("Failed to parse AI response:", aiContent);
         return NextResponse.json(
@@ -192,9 +203,10 @@ JSON만 출력:
     // 성공 로그
     console.log(`[Fortune API] 성공 - 이름: ${name}, IP: ${ip}, 모드: ${process.env.use_mock_fortune !== "false" ? "mock" : "AI"}, 남은횟수: ${rateCheck.remaining}`);
 
-    // 사주 정보 + 남은 횟수 함께 반환
+    // 사주 정보 + 사주 해석 + 남은 횟수 함께 반환
     return NextResponse.json({
       fortune,
+      sajuReading,
       remaining: rateCheck.remaining,
       saju: {
         yearPillar: `${sajuResult.yearPillar.stem.name}${sajuResult.yearPillar.branch.name}`,
